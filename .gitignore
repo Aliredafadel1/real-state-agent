@@ -4,6 +4,3 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 .env
-data/
-models/
-notebooks/eda.ipynb
