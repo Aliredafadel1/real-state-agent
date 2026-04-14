@@ -11,7 +11,8 @@ import pandas as pd
 
 # Get the root directory of the project
 def get_project_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+    return Path(__file__).resolve().parents[2]
+
 
 
 # Build full path to data file inside data/raw/
