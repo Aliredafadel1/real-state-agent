@@ -6,14 +6,30 @@ relevant to the ML model.
 """
 
 import json
+import re
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any
 
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.schemas import ExtractedFeatures
+
+
+# Features expected in Stage 1
+REQUIRED_FIELDS = [
+    "overall_qual",
+    "gr_liv_area",
+    "garage_cars",
+    "total_bsmt_sf",
+    "full_bath",
+    "year_built",
+    "neighborhood",
+    "house_style",
+    "garage_type",
+    "exter_qual",
+]
 
 
 # Example feature mapping for the LLM
@@ -25,58 +41,139 @@ FEATURE_MAPPING = {
     "full_bath": "number of full bathrooms",
     "year_built": "year the house was built",
     "neighborhood": "neighborhood name",
-    "house_style": "house style (e.g., ranch, colonial)",
+    "house_style": "house style (e.g., 1Story, 2Story, ranch, colonial)",
     "garage_type": "garage type (e.g., attached, detached)",
-    "exter_qual": "exterior quality",
+    "exter_qual": "exterior quality (e.g., Ex, Gd, TA, Fa, Po)",
 }
 
 
 def build_extraction_prompt(user_query: str) -> str:
     """
     Build a prompt for the LLM to extract features from user input.
-    
-    Args:
-        user_query: User's natural language description of a house
-        
-    Returns:
-        Formatted prompt for the LLM
     """
     features_description = "\n".join(
         [f"- {key}: {value}" for key, value in FEATURE_MAPPING.items()]
     )
-    
+
     prompt = f"""You are an expert at extracting house features from user descriptions.
 
 Given the user's description, extract as many of the following features as possible:
 
 {features_description}
 
+Rules:
+1. Return valid JSON only.
+2. Do not guess missing values.
+3. Use null for missing or unknown values.
+4. Return ONLY the feature keys listed below.
+5. Do not include explanations or extra text.
+
 User input: "{user_query}"
 
-Return a JSON object with:
-1. Extracted features (use null for missing values)
-2. List of provided_fields (which fields were found)
-3. List of missing_fields (which fields are still needed)
-
-Example format:
+Return JSON with exactly these keys:
 {{
-    "overall_qual": 8,
-    "gr_liv_area": 2500.0,
-    "garage_cars": 2.0,
-    "total_bsmt_sf": 1000.0,
-    "full_bath": 2,
-    "year_built": 2005,
-    "neighborhood": "Downtown",
-    "house_style": "Ranch",
-    "garage_type": "Attached",
-    "exter_qual": "Good",
-    "provided_fields": ["overall_qual", "gr_liv_area", "garage_cars"],
-    "missing_fields": ["total_bsmt_sf", "full_bath", "year_built", "neighborhood", "house_style", "garage_type", "exter_qual"]
+    "overall_qual": null,
+    "gr_liv_area": null,
+    "garage_cars": null,
+    "total_bsmt_sf": null,
+    "full_bath": null,
+    "year_built": null,
+    "neighborhood": null,
+    "house_style": null,
+    "garage_type": null,
+    "exter_qual": null
 }}
-
-Return ONLY the JSON object, no additional text."""
-    
+"""
     return prompt
+
+
+def safe_json_extract(text: str) -> dict[str, Any]:
+    """
+    Safely extract JSON from LLM output.
+
+    Handles:
+    - pure JSON
+    - extra text before/after JSON
+    """
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            return json.loads(match.group())
+        raise ValueError("No valid JSON object found in LLM response.")
+
+
+def normalize_categorical_values(data: dict[str, Any]) -> dict[str, Any]:
+    """
+    Normalize categorical values to be closer to training categories.
+    """
+    garage_type_map = {
+        "attached": "Attchd",
+        "detached": "Detchd",
+        "built in": "BuiltIn",
+        "builtin": "BuiltIn",
+        "car port": "CarPort",
+        "carport": "CarPort",
+        "basement": "Basment",
+        "2 types": "2Types",
+    }
+
+    exter_qual_map = {
+        "excellent": "Ex",
+        "ex": "Ex",
+        "very good": "Gd",
+        "good": "Gd",
+        "gd": "Gd",
+        "typical": "TA",
+        "average": "TA",
+        "ta": "TA",
+        "fair": "Fa",
+        "fa": "Fa",
+        "poor": "Po",
+        "po": "Po",
+    }
+
+    house_style_map = {
+        "1 story": "1Story",
+        "one story": "1Story",
+        "1story": "1Story",
+        "2 story": "2Story",
+        "two story": "2Story",
+        "2story": "2Story",
+        "1.5 story": "1.5Fin",
+        "one and half story": "1.5Fin",
+        "ranch": "1Story",
+    }
+
+    if isinstance(data.get("garage_type"), str):
+        value = data["garage_type"].strip().lower()
+        data["garage_type"] = garage_type_map.get(value, data["garage_type"])
+
+    if isinstance(data.get("exter_qual"), str):
+        value = data["exter_qual"].strip().lower()
+        data["exter_qual"] = exter_qual_map.get(value, data["exter_qual"])
+
+    if isinstance(data.get("house_style"), str):
+        value = data["house_style"].strip().lower()
+        data["house_style"] = house_style_map.get(value, data["house_style"])
+
+    return data
+
+
+def compute_field_completeness(extracted: ExtractedFeatures) -> ExtractedFeatures:
+    """
+    Compute provided_fields and missing_fields from actual extracted values.
+    """
+    data = extracted.model_dump()
+
+    provided_fields = [field for field in REQUIRED_FIELDS if data.get(field) is not None]
+    missing_fields = [field for field in REQUIRED_FIELDS if data.get(field) is None]
+
+    extracted.provided_fields = provided_fields
+    extracted.missing_fields = missing_fields
+
+    return extracted
 
 
 def extract_features_from_llm_response(
@@ -85,26 +182,11 @@ def extract_features_from_llm_response(
 ) -> ExtractedFeatures:
     """
     Parse LLM response and convert to ExtractedFeatures schema.
-    
-    Args:
-        llm_response: Raw response from LLM (should be JSON)
-        user_query: Original user query (for fallback/debugging)
-        
-    Returns:
-        ExtractedFeatures object
-        
-    Raises:
-        ValueError: If response cannot be parsed as JSON
     """
     try:
-        # Parse JSON from LLM response
-        response_data = json.loads(llm_response)
-        
-        # Extract provided and missing fields
-        provided_fields = response_data.pop("provided_fields", [])
-        missing_fields = response_data.pop("missing_fields", [])
-        
-        # Create ExtractedFeatures with remaining fields
+        response_data = safe_json_extract(llm_response)
+        response_data = normalize_categorical_values(response_data)
+
         extracted = ExtractedFeatures(
             overall_qual=response_data.get("overall_qual"),
             gr_liv_area=response_data.get("gr_liv_area"),
@@ -116,48 +198,40 @@ def extract_features_from_llm_response(
             house_style=response_data.get("house_style"),
             garage_type=response_data.get("garage_type"),
             exter_qual=response_data.get("exter_qual"),
-            provided_fields=provided_fields,
-            missing_fields=missing_fields,
         )
-        
+
+        extracted = compute_field_completeness(extracted)
         return extracted
-        
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Failed to parse LLM response as JSON: {e}")
+
+    except Exception as e:
+        print(f"⚠️ Stage 1 parsing failed for query: {user_query}")
+        print(f"Reason: {e}")
+
+        # Safe fallback
+        return ExtractedFeatures(
+            provided_fields=[],
+            missing_fields=REQUIRED_FIELDS.copy()
+        )
 
 
 def stage1_extract_features(user_query: str) -> ExtractedFeatures:
     """
     Main Stage 1 function: Extract features from user input.
-    
-    This is a placeholder that builds the prompt. In production, you would
-    call your actual LLM API here (e.g., OpenAI, Claude, Cohere).
-    
-    Args:
-        user_query: User's natural language house description
-        
-    Returns:
-        ExtractedFeatures with parsed information
+
+    This is a placeholder that builds the prompt. In production, replace the
+    mock response with a real LLM API call.
     """
-    # Build the extraction prompt
     prompt = build_extraction_prompt(user_query)
-    
+
     print("=" * 60)
     print("STAGE 1: Feature Extraction Prompt")
     print("=" * 60)
     print(prompt)
     print("=" * 60)
-    
+
     # TODO: Replace with actual LLM API call
-    # Example for production:
-    # response = openai.ChatCompletion.create(
-    #     model="gpt-4",
-    #     messages=[{"role": "user", "content": prompt}],
-    #     temperature=0.1,
-    # )
-    # llm_response = response.choices[0].message.content
-    
-    # For now, return mock response
+    # llm_response = call_your_llm(prompt)
+
     mock_response = {
         "overall_qual": 8,
         "gr_liv_area": 2500.0,
@@ -166,29 +240,26 @@ def stage1_extract_features(user_query: str) -> ExtractedFeatures:
         "full_bath": 2,
         "year_built": 2005,
         "neighborhood": None,
-        "house_style": None,
-        "garage_type": None,
-        "exter_qual": None,
-        "provided_fields": ["overall_qual", "gr_liv_area", "garage_cars", "total_bsmt_sf", "full_bath", "year_built"],
-        "missing_fields": ["neighborhood", "house_style", "garage_type", "exter_qual"]
+        "house_style": "ranch",
+        "garage_type": "attached",
+        "exter_qual": "good"
     }
-    
+
     extracted = extract_features_from_llm_response(
         json.dumps(mock_response),
         user_query
     )
-    
+
     return extracted
 
 
 if __name__ == "__main__":
-    # Test Stage 1
-    test_query = "I have a 2005 ranch house with 2500 sq ft of living space and a 2-car garage with 1000 sq ft basement"
-    
+    test_query = "I have a 2005 ranch house with 2500 sq ft of living space and a 2-car attached garage with 1000 sq ft basement and good exterior quality"
+
     print(f"\nUser Query: {test_query}\n")
-    
+
     features = stage1_extract_features(test_query)
-    
+
     print("\nExtracted Features:")
     print(features.model_dump_json(indent=2))
     print(f"\nProvided fields: {features.provided_fields}")

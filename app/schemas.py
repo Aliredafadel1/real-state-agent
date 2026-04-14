@@ -36,6 +36,18 @@ class ModelInput(BaseModel):
     ExterQual: str
 
 
+class PredictionOutput(BaseModel):
+    """Schema for single prediction output."""
+    prediction: float = Field(..., description="Predicted house price")
+    confidence: Optional[float] = Field(None, description="Confidence score (0-1)")
+
+
+class BatchPredictionOutput(BaseModel):
+    """Schema for batch prediction output."""
+    predictions: List[float] = Field(..., description="List of predictions")
+    count: int = Field(..., description="Number of predictions")
+
+
 class PredictionResponse(BaseModel):
     extracted_features: ExtractedFeatures
     model_input: ModelInput
