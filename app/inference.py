@@ -23,7 +23,7 @@ from app.schemas import ModelInput, PredictionOutput, BatchPredictionOutput
 class ModelInference:
     """Handle model loading and inference."""
     
-    MODEL_PATH = Path(__file__).parent.parent / "artifacts" / "best_model.pkl"
+    MODEL_PATH = Path(__file__).parent.parent / "artifacts" / "best_model.joblib"
     
     def __init__(self, model_path: Union[str, Path] = None):
         """
@@ -78,18 +78,37 @@ class ModelInference:
         
         return float(prediction)
     
-    def predict_batch(self, features: np.ndarray) -> np.ndarray:
+    def predict_batch(self, features: Union[np.ndarray, pd.DataFrame, List[List[float]]], feature_names: List[str] = None) -> np.ndarray:
         """
         Make batch predictions.
         
         Args:
-            features: Input feature matrix (2D array, n_samples x n_features)
+            features: Input features - can be numpy array, DataFrame, or list of lists
+            feature_names: Optional list of column names (required if features is ndarray or list)
             
         Returns:
             Predictions array
         """
         if self.pipeline is None:
             raise RuntimeError("Model not loaded. Call load_model() first.")
+        
+        # Convert to DataFrame if needed (sklearn pipeline expects DataFrame with column names)
+        if isinstance(features, np.ndarray):
+            default_features = [
+                "OverallQual", "GrLivArea", "GarageCars", "TotalBsmtSF",
+                "FullBath", "YearBuilt", "TotalSF", "HouseAge",
+                "Neighborhood", "HouseStyle", "GarageType", "ExterQual"
+            ]
+            cols = feature_names if feature_names else default_features[:features.shape[1]]
+            features = pd.DataFrame(features, columns=cols)
+        elif isinstance(features, list):
+            default_features = [
+                "OverallQual", "GrLivArea", "GarageCars", "TotalBsmtSF",
+                "FullBath", "YearBuilt", "TotalSF", "HouseAge",
+                "Neighborhood", "HouseStyle", "GarageType", "ExterQual"
+            ]
+            cols = feature_names if feature_names else default_features[:len(features[0])]
+            features = pd.DataFrame(features, columns=cols)
         
         predictions = self.pipeline.predict(features)
         return predictions
@@ -99,22 +118,14 @@ class ModelInference:
         Make prediction from dictionary of features.
         
         Args:
-            data: Dictionary with feature names as keys
+            data: Dictionary with feature names and values
             
         Returns:
             Predicted value
         """
-        # Extract features in the correct order
-        feature_order = [
-            "OverallQual", "GrLivArea", "GarageCars", "TotalBsmtSF",
-            "FullBath", "YearBuilt", "TotalSF", "HouseAge",
-            "Neighborhood", "HouseStyle", "GarageType", "ExterQual"
-        ]
-        
-        features = [data.get(feat, 0) for feat in feature_order]
-        features_array = np.array(features).reshape(1, -1)
-        
-        prediction = self.pipeline.predict(features_array)[0]
+        # Convert dict to DataFrame (required by sklearn pipeline)
+        df = pd.DataFrame([data])
+        prediction = self.pipeline.predict(df)[0]
         return float(prediction)
     
     def predict_from_dataframe(self, df: pd.DataFrame) -> np.ndarray:
@@ -239,13 +250,26 @@ if __name__ == "__main__":
         prediction = engine.predict_from_dict(sample_features)
         print(f"\n✓ Single Prediction: ${prediction:,.2f}")
         
-        # Batch prediction
-        batch_features = np.array([
-            [8, 2500.0, 2.0, 1000.0, 2, 2005, 3500.0, 19],
-            [7, 2200.0, 1.0, 900.0, 1, 2010, 3100.0, 14],
-        ])
+        # Batch prediction - with all required columns (converted to dict then back to list as proper format)
+        batch_dicts = [
+            {
+                "OverallQual": 8, "GrLivArea": 2500.0, "GarageCars": 2.0,
+                "TotalBsmtSF": 1000.0, "FullBath": 2, "YearBuilt": 2005,
+                "TotalSF": 3500.0, "HouseAge": 19,
+                "Neighborhood": "Downtown", "HouseStyle": "Ranch",
+                "GarageType": "Attached", "ExterQual": "Good"
+            },
+            {
+                "OverallQual": 7, "GrLivArea": 2200.0, "GarageCars": 1.0,
+                "TotalBsmtSF": 900.0, "FullBath": 1, "YearBuilt": 2010,
+                "TotalSF": 3100.0, "HouseAge": 14,
+                "Neighborhood": "Midtown", "HouseStyle": "Colonial",
+                "GarageType": "Detached", "ExterQual": "Average"
+            }
+        ]
         
-        batch_predictions = engine.predict_batch(batch_features)
+        batch_df = pd.DataFrame(batch_dicts)
+        batch_predictions = engine.predict_batch(batch_df)
         print(f"\n✓ Batch Predictions ({len(batch_predictions)} samples):")
         for i, pred in enumerate(batch_predictions):
             print(f"  Sample {i+1}: ${pred:,.2f}")
