@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
 class ExtractedFeatures(BaseModel):
@@ -55,6 +55,34 @@ class PredictionResponse(BaseModel):
     explanation: str
     
     model_config = {"protected_namespaces": ()}
+
+
+class PredictRequest(BaseModel):
+    """Request schema for /predict endpoint."""
+
+    model_config = ConfigDict(populate_by_name=True)
+    query: str = Field(
+        ...,
+        min_length=1,
+        validation_alias=AliasChoices("query", "prompt", "user_query", "text"),
+        description="User natural-language house description",
+    )
+
+
+class PredictAPIResponse(BaseModel):
+    """API response schema for end-to-end prediction pipeline."""
+
+    extracted_features: ExtractedFeatures
+    predicted_price: float
+    explanation: str
+    missing_fields: List[str] = Field(default_factory=list)
+
+
+class ErrorResponse(BaseModel):
+    """Standard error response schema."""
+
+    error: str
+    detail: str
 
 
 if __name__ == "__main__":

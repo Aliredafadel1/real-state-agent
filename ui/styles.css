@@ -1,0 +1,41 @@
+.stApp {
+  background: #121826;
+  color: #e5e7eb;
+}
+
+.card {
+  background: #1b2435;
+  border: 1px solid #2a3650;
+  border-radius: 14px;
+  padding: 1rem 1.2rem;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+  margin-bottom: 1rem;
+}
+
+.app-header h1 {
+  margin: 0;
+  color: #f9fafb;
+  font-size: 2rem;
+}
+
+.app-header p {
+  margin-top: 0.45rem;
+  color: #cbd5e1;
+}
+
+.prediction-card {
+  text-align: center;
+  padding: 1.25rem;
+}
+
+.prediction-label {
+  color: #94a3b8;
+  font-size: 0.95rem;
+  margin-bottom: 0.4rem;
+}
+
+.prediction-value {
+  color: #f8fafc;
+  font-size: 2rem;
+  font-weight: 700;
+}

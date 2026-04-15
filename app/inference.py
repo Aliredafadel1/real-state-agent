@@ -8,7 +8,7 @@ on new data. It supports both single and batch predictions.
 import json
 import sys
 from pathlib import Path
-from typing import List, Union, Dict, Any
+from typing import List, Union, Dict, Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -17,7 +17,13 @@ import joblib
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.schemas import ModelInput, PredictionOutput, BatchPredictionOutput
+from app.schemas import (
+    ModelInput,
+    PredictionOutput,
+    BatchPredictionOutput,
+    PredictionResponse,
+)
+from app.llm_stage2 import generate_explanation
 
 
 class ModelInference:
@@ -55,7 +61,7 @@ class ModelInference:
         
         try:
             self.pipeline = joblib.load(self.model_path)
-            print(f"✓ Model loaded from {self.model_path}")
+            print(f"[OK] Model loaded from {self.model_path}")
         except Exception as e:
             raise Exception(f"Failed to load model: {str(e)}")
     
@@ -192,6 +198,47 @@ def predict(model_input: ModelInput) -> PredictionOutput:
         raise Exception(f"Prediction failed: {str(e)}")
 
 
+def predict_with_explanation(
+    model_input: ModelInput,
+    extracted_features: Optional[Dict[str, Any]] = None,
+    missing_fields: Optional[List[str]] = None,
+    dataset_summary: Optional[Dict[str, Any]] = None,
+    llm_provider: Optional[str] = None,
+) -> PredictionResponse:
+    """
+    High-level prediction function with Stage 2 explanation generation.
+
+    Args:
+        model_input: ModelInput schema with required model features.
+        extracted_features: Optional Stage 1 output as a plain dict.
+        missing_fields: Optional list of missing Stage 1 fields.
+        dataset_summary: Optional dataset-level context for explanation.
+        llm_provider: Optional provider override for LLM explanation.
+
+    Returns:
+        PredictionResponse containing prediction and explanation text.
+    """
+    # Reuse existing inference logic to keep behavior consistent.
+    prediction_result = predict(model_input)
+    input_dict = model_input.model_dump()
+
+    explanation = generate_explanation(
+        extracted_features=extracted_features or {},
+        model_input=input_dict,
+        predicted_price=prediction_result.prediction,
+        missing_fields=missing_fields or [],
+        dataset_summary=dataset_summary,
+        provider=llm_provider,
+    )
+
+    return PredictionResponse(
+        extracted_features=extracted_features or {},
+        model_input=model_input,
+        predicted_price=prediction_result.prediction,
+        explanation=explanation,
+    )
+
+
 def batch_predict(features_list: List[List[float]]) -> BatchPredictionOutput:
     """
     Make batch predictions.
@@ -248,7 +295,7 @@ if __name__ == "__main__":
         
         # Single prediction
         prediction = engine.predict_from_dict(sample_features)
-        print(f"\n✓ Single Prediction: ${prediction:,.2f}")
+        print(f"\n[OK] Single Prediction: ${prediction:,.2f}")
         
         # Batch prediction - with all required columns (converted to dict then back to list as proper format)
         batch_dicts = [
@@ -270,15 +317,15 @@ if __name__ == "__main__":
         
         batch_df = pd.DataFrame(batch_dicts)
         batch_predictions = engine.predict_batch(batch_df)
-        print(f"\n✓ Batch Predictions ({len(batch_predictions)} samples):")
+        print(f"\n[OK] Batch Predictions ({len(batch_predictions)} samples):")
         for i, pred in enumerate(batch_predictions):
             print(f"  Sample {i+1}: ${pred:,.2f}")
         
         print("\n" + "=" * 60)
-        print("✓ All inference tests passed!")
+        print("[OK] All inference tests passed!")
         
     except FileNotFoundError as e:
-        print(f"\n⚠ Warning: {e}")
+        print(f"\n[WARN] Warning: {e}")
         print("Train a model first using: python -m src.models.train")
     except Exception as e:
-        print(f"\n✗ Error: {e}")
+        print(f"\n[ERR] Error: {e}")

@@ -9,7 +9,10 @@ import json
 import re
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 from typing import Any
+
+load_dotenv()
 
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -95,13 +98,59 @@ def safe_json_extract(text: str) -> dict[str, Any]:
     - pure JSON
     - extra text before/after JSON
     """
+    def _extract_first_json_object(raw: str) -> str | None:
+        start = raw.find("{")
+        while start != -1:
+            depth = 0
+            in_string = False
+            escape = False
+            for idx in range(start, len(raw)):
+                ch = raw[idx]
+
+                if in_string:
+                    if escape:
+                        escape = False
+                    elif ch == "\\":
+                        escape = True
+                    elif ch == '"':
+                        in_string = False
+                    continue
+
+                if ch == '"':
+                    in_string = True
+                elif ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        return raw[start:idx + 1]
+
+            start = raw.find("{", start + 1)
+        return None
+
+    # 1) Strict JSON response
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", text, re.DOTALL)
-        if match:
-            return json.loads(match.group())
-        raise ValueError("No valid JSON object found in LLM response.")
+        pass
+
+    # 2) JSON fenced code block
+    fenced_match = re.search(r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", text, re.IGNORECASE)
+    if fenced_match:
+        try:
+            return json.loads(fenced_match.group(1))
+        except json.JSONDecodeError:
+            pass
+
+    # 3) First balanced object in mixed text
+    candidate = _extract_first_json_object(text)
+    if candidate:
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError as exc:
+            raise ValueError("Found JSON-like content but it is invalid JSON.") from exc
+
+    raise ValueError("No valid JSON object found in LLM response.")
 
 
 def normalize_categorical_values(data: dict[str, Any]) -> dict[str, Any]:
@@ -204,8 +253,8 @@ def extract_features_from_llm_response(
         return extracted
 
     except Exception as e:
-        print(f"⚠️ Stage 1 parsing failed for query: {user_query}")
-        print(f"Reason: {e}")
+        print(f"[WARN] Stage 1 parsing failed for query: {user_query}")
+        print(f"[WARN] Reason: {e}")
 
         # Safe fallback
         return ExtractedFeatures(
