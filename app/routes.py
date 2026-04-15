@@ -88,6 +88,12 @@ def predict_price(payload: PredictRequest) -> PredictAPIResponse:
         raise Stage1ExtractionError(
             "Could not extract enough features from query. Please provide more house details."
         )
+    if extracted.missing_fields:
+        missing = ", ".join(extracted.missing_fields)
+        raise Stage1ExtractionError(
+            "Input is incomplete. You should fill all the features or provide all feature descriptions. "
+            f"Missing fields: {missing}."
+        )
 
     model_input = _to_model_input(extracted)
 

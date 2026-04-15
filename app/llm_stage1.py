@@ -50,6 +50,57 @@ FEATURE_MAPPING = {
 }
 
 
+FEW_SHOT_EXAMPLES = """
+Example 1
+Input: "A 1998 two-story home, 1800 sq ft, detached 2-car garage, 900 sq ft basement, 2 full baths, in OldTown, exterior is average."
+Output:
+{
+  "overall_qual": null,
+  "gr_liv_area": 1800,
+  "garage_cars": 2,
+  "total_bsmt_sf": 900,
+  "full_bath": 2,
+  "year_built": 1998,
+  "neighborhood": "OldTown",
+  "house_style": "2Story",
+  "garage_type": "detached",
+  "exter_qual": "average"
+}
+
+Example 2
+Input: "Built in 2007, ranch style, 2400 above-grade sqft, attached garage for 3 cars, excellent exterior. No basement info."
+Output:
+{
+  "overall_qual": null,
+  "gr_liv_area": 2400,
+  "garage_cars": 3,
+  "total_bsmt_sf": null,
+  "full_bath": null,
+  "year_built": 2007,
+  "neighborhood": null,
+  "house_style": "ranch",
+  "garage_type": "attached",
+  "exter_qual": "excellent"
+}
+
+Example 3
+Input: "Small starter home with 1200 sq ft, one bath, no garage, built 1975, neighborhood Edwards."
+Output:
+{
+  "overall_qual": null,
+  "gr_liv_area": 1200,
+  "garage_cars": 0,
+  "total_bsmt_sf": null,
+  "full_bath": 1,
+  "year_built": 1975,
+  "neighborhood": "Edwards",
+  "house_style": null,
+  "garage_type": null,
+  "exter_qual": null
+}
+"""
+
+
 def build_extraction_prompt(user_query: str) -> str:
     """
     Build a prompt for the LLM to extract features from user input.
@@ -70,6 +121,10 @@ Rules:
 3. Use null for missing or unknown values.
 4. Return ONLY the feature keys listed below.
 5. Do not include explanations or extra text.
+6. Preserve numeric values exactly as written (e.g., 2500 must stay 2500, not 250).
+
+Few-shot examples:
+{FEW_SHOT_EXAMPLES}
 
 User input: "{user_query}"
 
