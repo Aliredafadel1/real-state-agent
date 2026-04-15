@@ -229,24 +229,13 @@ def stage1_extract_features(user_query: str) -> ExtractedFeatures:
     print(prompt)
     print("=" * 60)
 
-    # TODO: Replace with actual LLM API call
-    # llm_response = call_your_llm(prompt)
+    # Use the llm client switchboard to get a response (defaults to mock)
+    from app.llm_client import call_llm
 
-    mock_response = {
-        "overall_qual": 8,
-        "gr_liv_area": 2500.0,
-        "garage_cars": 2.0,
-        "total_bsmt_sf": 1000.0,
-        "full_bath": 2,
-        "year_built": 2005,
-        "neighborhood": None,
-        "house_style": "ranch",
-        "garage_type": "attached",
-        "exter_qual": "good"
-    }
+    llm_response = call_llm(prompt)
 
     extracted = extract_features_from_llm_response(
-        json.dumps(mock_response),
+        llm_response,
         user_query
     )
 

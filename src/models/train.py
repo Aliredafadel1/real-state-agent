@@ -12,6 +12,8 @@ from src.data.load_data import load_train_data
 from src.features.feature_engineering import engineer_features
 from src.models.split_data import select_features, split_data
 from src.models.preprocess import build_preprocessor
+from pathlib import Path
+import json
 
 
 def evaluate_model(name, pipeline, X_train, y_train, X_val, y_val):
@@ -97,6 +99,26 @@ def main():
     print(f"MAE  : {best_result['mae']:.2f}")
     print(f"RMSE : {best_result['rmse']:.2f}")
     print(f"R2   : {best_result['r2']:.4f}")
+
+    # Persist per-model metrics for EDA / comparison plots
+    artifacts_dir = Path(__file__).parent.parent / "artifacts"
+    artifacts_dir.mkdir(parents=True, exist_ok=True)
+
+    metrics_path = artifacts_dir / "models_metrics.json"
+    serializable = [
+        {
+            "model_name": r["model_name"],
+            "mae": r["mae"],
+            "rmse": r["rmse"],
+            "r2": r["r2"]
+        }
+        for r in results
+    ]
+
+    with open(metrics_path, "w", encoding="utf-8") as f:
+        json.dump(serializable, f, indent=2)
+
+    print(f"Saved per-model metrics to {metrics_path}")
 
     # Final evaluation on test set
     y_test_pred = best_pipeline.predict(X_test)

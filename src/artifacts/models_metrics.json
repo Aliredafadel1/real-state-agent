@@ -1,0 +1,20 @@
+[
+  {
+    "model_name": "LinearRegression",
+    "mae": 19956.428874938818,
+    "rmse": 27125.937861033162,
+    "r2": 0.8828509321981695
+  },
+  {
+    "model_name": "RandomForestRegressor",
+    "mae": 17467.82633681235,
+    "rmse": 25281.98961614805,
+    "r2": 0.8982365530087739
+  },
+  {
+    "model_name": "GradientBoostingRegressor",
+    "mae": 18004.826677134162,
+    "rmse": 26455.81804032078,
+    "r2": 0.8885675442055518
+  }
+]
