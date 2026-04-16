@@ -10,11 +10,11 @@ def header_template() -> str:
     return """
     <div class="app-header chatgpt-topbar">
       <div class="chatgpt-brand">
-        <span class="chatgpt-logo" aria-hidden="true">RE</span>
+        <span class="chatgpt-logo" aria-hidden="true">AI</span>
         <div>
-          <h1>Real Estate Agent</h1>
+          <h1>AI-Powered Property Valuation</h1>
           <p class="chatgpt-subtitle">
-            Natural-language estimates with clear explanations. Use the sidebar for precise manual inputs when you need them.
+            Instant, unbiased, data-driven estimates
           </p>
         </div>
       </div>

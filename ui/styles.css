@@ -346,10 +346,10 @@ div[data-testid="stSidebar"] .stButton > button[kind="secondary"] {
 }
 
 .prediction-value {
-  font-size: 2rem;
+  font-size: 2.6rem;
   font-weight: 700;
   letter-spacing: -0.03em;
-  color: var(--accent);
+  color: #6ee7b7;
 }
 
 .prose-panel {
@@ -372,4 +372,84 @@ div[data-testid="stSidebar"] .stButton > button[kind="secondary"] {
 /* Charts area */
 [data-testid="stVerticalBlock"] canvas {
   filter: saturate(1.05) contrast(1.02);
+}
+
+.villa-image-wrap {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-md);
+  transition: transform 200ms ease;
+  animation: fadeIn 360ms ease-in-out;
+}
+
+.villa-image-wrap:hover {
+  transform: scale(1.01);
+}
+
+.villa-image-wrap img {
+  border-radius: 18px;
+}
+
+.villa-overlay {
+  position: relative;
+  margin-top: -2.7rem;
+  margin-left: 0.9rem;
+  display: inline-block;
+  padding: 0.32rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(99, 179, 237, 0.45);
+  background: rgba(11, 14, 20, 0.7);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.price-meta {
+  margin-top: 0.65rem;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.price-meta strong {
+  color: var(--accent);
+}
+
+[data-testid="stTextArea"] textarea {
+  background: var(--bg-input) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+}
+
+[data-testid="stTextArea"] textarea:focus {
+  border-color: rgba(99, 179, 237, 0.55) !important;
+  box-shadow: 0 0 0 3px var(--accent-soft) !important;
+}
+
+.stButton > button {
+  border-radius: 12px !important;
+  transition: transform 150ms ease, box-shadow 150ms ease !important;
+}
+
+.stButton > button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28) !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
