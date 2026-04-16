@@ -206,6 +206,8 @@ section[data-testid="stChatMessageUserMessage"] {
   border: 1px solid var(--border-strong) !important;
   border-radius: var(--radius) !important;
   box-shadow: var(--shadow-sm) !important;
+  margin-left: auto !important;
+  max-width: 78% !important;
 }
 
 section[data-testid="stChatMessageAssistantMessage"] {
@@ -213,6 +215,8 @@ section[data-testid="stChatMessageAssistantMessage"] {
   border: 1px solid var(--border) !important;
   border-radius: var(--radius) !important;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2) !important;
+  margin-right: auto !important;
+  max-width: 80% !important;
 }
 
 section[data-testid="stChatMessageUserMessage"] p,
@@ -382,6 +386,7 @@ div[data-testid="stSidebar"] .stButton > button[kind="secondary"] {
   box-shadow: var(--shadow-md);
   transition: transform 200ms ease;
   animation: fadeIn 360ms ease-in-out;
+  margin-bottom: 1.25rem;
 }
 
 .villa-image-wrap:hover {

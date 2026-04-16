@@ -123,7 +123,10 @@ def render_explanation(explanation: str) -> None:
     st.markdown(f"<div class='prose-panel'>{explanation}</div>", unsafe_allow_html=True)
 
 
-def render_house_image(image_path: str | Path = "ui/assets/house.jpg") -> None:
+def render_house_image(
+    image_path: str | Path = "ui/assets/house.jpg",
+    features: dict[str, Any] | None = None,
+) -> None:
     """
     Render a fixed modern villa image only.
     Never changes based on user input.
@@ -135,8 +138,30 @@ def render_house_image(image_path: str | Path = "ui/assets/house.jpg") -> None:
         image_source = FIXED_VILLA_URL
     st.markdown("<div class='villa-image-wrap'>", unsafe_allow_html=True)
     st.image(image_source, use_container_width=True)
+
+    # Build a compact overlay string using available features
+    overlay_text = "AI Analyzed Property"
+    if features:
+        neighborhood = str(features.get("Neighborhood") or "").strip()
+        rooms = features.get("Rooms")
+        garage = features.get("GarageCars")
+        year = features.get("YearBuilt")
+
+        parts: list[str] = []
+        if neighborhood:
+            parts.append(neighborhood)
+        if rooms is not None:
+            parts.append(f"{int(rooms)} rooms")
+        if garage is not None:
+            parts.append(f"{int(garage)} garage")
+        if year is not None:
+            parts.append(f"Built {int(year)}")
+
+        if parts:
+            overlay_text = " · ".join(parts)
+
     st.markdown(
-        "<div class='villa-overlay'>AI Analyzed Property</div></div>",
+        f"<div class='villa-overlay'>{overlay_text}</div></div>",
         unsafe_allow_html=True,
     )
 
