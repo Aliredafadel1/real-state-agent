@@ -1,9 +1,6 @@
 {
     "best_model": "RandomForestRegressor",
-    "validation_mae": 17433.71957164601,
-    "validation_rmse": 25263.630423315106,
-    "validation_r2": 0.8983842958422231,
-    "test_mae": 17753.31870596869,
-    "test_rmse": 27654.94929332311,
-    "test_r2": 0.8995053529810949
+    "train_rmse": 12690.53708415056,
+    "val_rmse": 25263.630423315106,
+    "test_rmse": 27654.94929332311
 }

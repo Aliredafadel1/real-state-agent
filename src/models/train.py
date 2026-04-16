@@ -14,20 +14,35 @@ from src.models.split_data import select_features, split_data
 from src.models.preprocess import build_preprocessor
 
 
-def evaluate_model(name, pipeline, X_train, y_train, X_val, y_val):
+def evaluate_model(
+    name,
+    pipeline,
+    X_train,
+    y_train,
+    X_val,
+    y_val,
+    X_test,
+    y_test,
+):
+    """
+    Fit a pipeline and compute RMSE on train/validation/test splits.
+    """
     pipeline.fit(X_train, y_train)
-    y_val_pred = pipeline.predict(X_val)
 
-    mae = mean_absolute_error(y_val, y_val_pred)
-    rmse = mean_squared_error(y_val, y_val_pred) ** 0.5
-    r2 = r2_score(y_val, y_val_pred)
+    y_train_pred = pipeline.predict(X_train)
+    y_val_pred = pipeline.predict(X_val)
+    y_test_pred = pipeline.predict(X_test)
+
+    train_rmse = mean_squared_error(y_train, y_train_pred) ** 0.5
+    val_rmse = mean_squared_error(y_val, y_val_pred) ** 0.5
+    test_rmse = mean_squared_error(y_test, y_test_pred) ** 0.5
 
     return {
         "model_name": name,
         "pipeline": pipeline,
-        "mae": mae,
-        "rmse": rmse,
-        "r2": r2
+        "train_rmse": train_rmse,
+        "val_rmse": val_rmse,
+        "test_rmse": test_rmse,
     }
 
 
@@ -78,25 +93,27 @@ def main():
             X_train=X_train,
             y_train=y_train,
             X_val=X_val,
-            y_val=y_val
+            y_val=y_val,
+            X_test=X_test,
+            y_test=y_test,
         )
 
         results.append(result)
 
-        print(f"{model_name} Validation Metrics:")
-        print(f"MAE  : {result['mae']:.2f}")
-        print(f"RMSE : {result['rmse']:.2f}")
-        print(f"R2   : {result['r2']:.4f}")
+        print(f"{model_name} RMSE:")
+        print(f"  Train: {result['train_rmse']:.2f}")
+        print(f"  Val  : {result['val_rmse']:.2f}")
+        print(f"  Test : {result['test_rmse']:.2f}")
 
-    # Choose best model based on RMSE
-    best_result = min(results, key=lambda x: x["rmse"])
+    # Choose best model based on validation RMSE
+    best_result = min(results, key=lambda x: x["val_rmse"])
     best_pipeline = best_result["pipeline"]
 
     print("\nBest Model Selected:")
     print(f"Model: {best_result['model_name']}")
-    print(f"MAE  : {best_result['mae']:.2f}")
-    print(f"RMSE : {best_result['rmse']:.2f}")
-    print(f"R2   : {best_result['r2']:.4f}")
+    print(f"Train RMSE: {best_result['train_rmse']:.2f}")
+    print(f"Val   RMSE: {best_result['val_rmse']:.2f}")
+    print(f"Test  RMSE: {best_result['test_rmse']:.2f}")
 
     # Persist per-model metrics for EDA / comparison plots
     artifacts_dir = Path(__file__).parent.parent / "artifacts"
@@ -106,9 +123,9 @@ def main():
     serializable = [
         {
             "model_name": r["model_name"],
-            "mae": r["mae"],
-            "rmse": r["rmse"],
-            "r2": r["r2"]
+            "train_rmse": r["train_rmse"],
+            "val_rmse": r["val_rmse"],
+            "test_rmse": r["test_rmse"],
         }
         for r in results
     ]
@@ -118,18 +135,6 @@ def main():
 
     print(f"Saved per-model metrics to {metrics_path}")
 
-    # Final evaluation on test set
-    y_test_pred = best_pipeline.predict(X_test)
-
-    test_mae = mean_absolute_error(y_test, y_test_pred)
-    test_rmse = mean_squared_error(y_test, y_test_pred) ** 0.5
-    test_r2 = r2_score(y_test, y_test_pred)
-
-    print("\nTest Metrics:")
-    print(f"MAE  : {test_mae:.2f}")
-    print(f"RMSE : {test_rmse:.2f}")
-    print(f"R2   : {test_r2:.4f}")
-
     artifacts_dir = Path("artifacts")
     artifacts_dir.mkdir(exist_ok=True)
 
@@ -138,14 +143,12 @@ def main():
 
     joblib.dump(best_pipeline, model_path)
 
+    # Persist compact metrics for the selected best model
     metrics = {
         "best_model": best_result["model_name"],
-        "validation_mae": best_result["mae"],
-        "validation_rmse": best_result["rmse"],
-        "validation_r2": best_result["r2"],
-        "test_mae": test_mae,
-        "test_rmse": test_rmse,
-        "test_r2": test_r2
+        "train_rmse": best_result["train_rmse"],
+        "val_rmse": best_result["val_rmse"],
+        "test_rmse": best_result["test_rmse"],
     }
 
     with open(metrics_path, "w", encoding="utf-8") as f:
