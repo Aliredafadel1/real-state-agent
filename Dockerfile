@@ -27,4 +27,4 @@ COPY . .
 EXPOSE 8000 8501
 
 # Default command - can be overridden
-CMD ["python", "-m", "src.models.train"]
+CMD ["sh", "-c", "streamlit run ui/app.py --server.address 0.0.0.0 --server.port ${PORT}"]

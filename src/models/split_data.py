@@ -1,7 +1,9 @@
 from sklearn.model_selection import train_test_split
-from src.data.load_data import load_train_data
-from src.features.feature_engineering import engineer_features
+
 import pandas as pd
+
+from src.data.clean_data import prepare_training_dataframe
+from src.data.load_data import load_train_data
 
 
 NUMERIC_FEATURES = [
@@ -59,11 +61,8 @@ def split_data(X: pd.DataFrame, y: pd.Series, random_state: int = 42):
 
 
 if __name__ == "__main__":
-    from src.data.load_data import load_train_data
-    from src.features.feature_engineering import engineer_features
-
     df = load_train_data()
-    df = engineer_features(df)
+    df = prepare_training_dataframe(df)
 
     X, y = select_features(df)
     X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y)

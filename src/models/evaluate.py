@@ -3,9 +3,9 @@ import joblib
 import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-from src.models.split_data import split_data, select_features
-from src.features.feature_engineering import engineer_features
+from src.data.clean_data import prepare_training_dataframe
 from src.data.load_data import load_train_data
+from src.models.split_data import split_data, select_features
 
 
 def evaluate(y_true, y_pred, name="Dataset"):
@@ -36,8 +36,7 @@ def main():
         )
 
     # Load and prepare data
-    df = load_train_data()
-    df = engineer_features(df)
+    df = prepare_training_dataframe(load_train_data())
 
     X, y = select_features(df)
     X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y)

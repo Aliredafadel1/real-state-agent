@@ -8,12 +8,10 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
+from src.data.clean_data import prepare_training_dataframe
 from src.data.load_data import load_train_data
-from src.features.feature_engineering import engineer_features
 from src.models.split_data import select_features, split_data
 from src.models.preprocess import build_preprocessor
-from pathlib import Path
-import json
 
 
 def evaluate_model(name, pipeline, X_train, y_train, X_val, y_val):
@@ -36,11 +34,11 @@ def evaluate_model(name, pipeline, X_train, y_train, X_val, y_val):
 def main():
     print("Starting training...")
 
-    df = load_train_data()
-    print(f"Data loaded: {df.shape}")
+    df_raw = load_train_data()
+    print(f"Data loaded: {df_raw.shape}")
 
-    df = engineer_features(df)
-    print(f"After feature engineering: {df.shape}")
+    df = prepare_training_dataframe(df_raw)
+    print(f"After cleaning + feature engineering: {df.shape}")
 
     X, y = select_features(df)
     print(f"Features shape: {X.shape}")

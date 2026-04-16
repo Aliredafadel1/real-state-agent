@@ -45,12 +45,11 @@ def build_preprocessor(use_scaler: bool = False):
 
 
 if __name__ == "__main__":
+    from src.data.clean_data import prepare_training_dataframe
     from src.data.load_data import load_train_data
-    from src.features.feature_engineering import engineer_features
     from src.models.split_data import select_features, split_data
 
-    df = load_train_data()
-    df = engineer_features(df)
+    df = prepare_training_dataframe(load_train_data())
 
     X, y = select_features(df)
     X_train, X_val, X_test, y_train, y_val, y_test = split_data(X, y)

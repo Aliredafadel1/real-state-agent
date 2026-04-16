@@ -3,6 +3,21 @@ from pathlib import Path
 import pandas as pd
 
 
+def prepare_training_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Full table preparation: clean, reattach target, then feature engineering.
+
+    Order: clean (impute, drop bad columns, dedupe) -> engineer_features
+    -> ready for select_features().
+    """
+    from src.features.feature_engineering import engineer_features
+
+    X, y = clean_data(df)
+    combined = X.copy()
+    combined["SalePrice"] = y
+    return engineer_features(combined)
+
+
 def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
     """
     Clean the House Prices dataset and return features (X) and target (y).
