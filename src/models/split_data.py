@@ -28,9 +28,6 @@ TARGET_COLUMN = "SalePrice"
 
 
 def select_features(df: pd.DataFrame):
-    """
-    Select input features X and target y from the dataframe.
-    """
     feature_columns = NUMERIC_FEATURES + CATEGORICAL_FEATURES
 
     X = df[feature_columns].copy()
@@ -40,9 +37,7 @@ def select_features(df: pd.DataFrame):
 
 
 def split_data(X: pd.DataFrame, y: pd.Series, random_state: int = 42):
-    """
-    Split data into train, validation, and test sets.
-    """
+    
     X_train, X_temp, y_train, y_temp = train_test_split(
         X,
         y,

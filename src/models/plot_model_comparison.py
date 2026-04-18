@@ -1,21 +1,7 @@
-"""
-Plot train vs validation RMSE comparison per model.
-
-Reads `src/artifacts/models_metrics.json` produced by `train.py` and
-creates a grouped bar chart comparing train and validation RMSE for each model.
-
-Usage:
-    python -m src.models.plot_model_comparison
-
-Outputs:
-    src/artifacts/model_comparison_rmse.png
-"""
 from pathlib import Path
 import json
 import numpy as np
 import matplotlib.pyplot as plt
-
-
 def load_metrics(path: Path):
     if not path.exists():
         raise FileNotFoundError(f"Metrics file not found: {path}")

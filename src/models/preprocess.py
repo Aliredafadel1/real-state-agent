@@ -7,21 +7,7 @@ from src.models.split_data import NUMERIC_FEATURES, CATEGORICAL_FEATURES
 
 
 def build_preprocessor(use_scaler: bool = False):
-    """
-    Build a robust preprocessing pipeline.
-
-    Parameters
-    ----------
-    use_scaler : bool
-        If True, apply StandardScaler to numeric features.
-        If False, only apply imputation to numeric features.
-
-    Returns
-    -------
-    ColumnTransformer
-        Preprocessing object for numeric and categorical columns.
-    """
-
+ 
     numeric_steps = [
         ("imputer", SimpleImputer(strategy="median"))
     ]
